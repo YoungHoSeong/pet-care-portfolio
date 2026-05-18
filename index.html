@@ -97,7 +97,7 @@
   .arch-node .ko { font-family: 'Caveat', cursive; font-size: 16px; color: var(--ink-muted); }
   .arch-node .t { font-size: 18px; font-weight: 800; margin-top: 4px; color: var(--ink); }
   .arch-node .tech { font-size: 11px; color: var(--ink-soft); margin-top: 6px; font-family: 'Quicksand', sans-serif; font-weight: 700; letter-spacing: 0.04em; }
-  .arch-flow { display: flex; justify-content: center; margin: -12px 0; color: var(--ink-muted); font-size: 22px; }
+  .arch-flow { display: flex; justify-content: center; margin: -12px 0 16px; color: var(--ink-muted); font-size: 22px; }
 
   /* Tech stack */
   .stack-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
@@ -139,7 +139,7 @@
   .gallery { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
   .gallery .item { background: var(--paper); border: 1.5px solid var(--border); border-radius: 18px; padding: 12px; box-shadow: var(--shadow-soft); display: flex; flex-direction: column; gap: 10px; transition: transform 0.15s; }
   .gallery .item:hover { transform: translateY(-3px); }
-  .gallery .item img { aspect-ratio: 3/4; object-fit: cover; border-radius: 12px; background: var(--cream); }
+  .gallery .item img { aspect-ratio: 3/4; object-fit: contain; border-radius: 12px; background: var(--cream); }
   .gallery .item .name { font-size: 12px; font-weight: 700; color: var(--ink); padding: 0 4px 4px; }
 
   /* Operations */
@@ -432,7 +432,7 @@
       <div class="feature-card">
         <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
         <div class="t">잃어버린 반려동물</div>
-        <div class="d">위치 기반 푸시 · 제보 모더레이션 · 자동 종료(30일) · 반복 신고자 탐지 · 지역별 분포 통계까지 6단계로 완성.</div>
+        <div class="d">위치 기반 푸시 · 제보 모더레이션 · 자동 종료(30일) · 반복 신고자 탐지 · 사진 캐러셀 + 풀스크린 핀치줌 뷰어 · 지역별 분포 통계까지 완성.</div>
         <div class="stack-mini">A → F · ADMIN · APP · BACKEND</div>
       </div>
 
