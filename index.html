@@ -163,6 +163,9 @@
   .refl-card h4 { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 12px; }
   .refl-card p { font-size: 14px; line-height: 1.7; color: var(--ink-soft); }
   .refl-card p + p { margin-top: 12px; }
+  .refl-card p strong { color: var(--ink); font-weight: 700; }
+  .refl-card p em { font-style: normal; color: var(--brand-darker); font-weight: 600; background: var(--brand-subtle); padding: 1px 6px; border-radius: 4px; }
+  .refl-card p code { font-family: 'Quicksand', sans-serif; font-size: 12px; font-weight: 700; color: var(--coral-deep); background: rgba(255,157,122,0.10); padding: 1px 6px; border-radius: 4px; }
 
   /* Contact */
   .contact { background: linear-gradient(160deg, rgba(255,247,235,1), rgba(229,240,224,0.5)); }
@@ -627,29 +630,36 @@
     <div class="section-head">
       <div class="section-tag"><span class="dot"></span>REFLECTION</div>
       <h2 class="section-title">만들면서 배운 것들, <span class="script">learnings</span></h2>
-      <p class="section-desc">한 명이 풀스택으로 빠르게 만들면서도 무너지지 않는 구조를 유지하는 것이 가장 큰 도전이었습니다.</p>
+      <p class="section-desc">한 명이 풀스택을 빠르게 만들면서도 구조가 무너지지 않는 선을 지키는 것 — 그 사이에서 내린 의사결정들입니다. 정답이라기보다 "왜 그렇게 골랐는지"의 흔적에 가깝습니다.</p>
     </div>
 
     <div class="refl-grid">
       <div class="refl-card">
         <div class="pill">ARCHITECTURE</div>
-        <h4>DDD 모듈 경계를 처음부터</h4>
-        <p>도메인별로 디렉토리(auth · user · pet · walk · lostpet · abuse · userblock ...)를 나누고 모듈 간 직접 import 대신 Port 어댑터 패턴을 적용. abuse 모듈이 lostpet 의 sighting 을 직접 부르지 않고 admin 이 별도 API 로 disable 호출하는 식. 단기에는 비용이지만 모듈 추가/제거가 쉬워졌습니다.</p>
+        <h4>추상화는 비용이 아니라, 미래의 선택지</h4>
+        <p>도메인이 하나뿐일 땐 직접 의존이 가장 빠른 길처럼 보입니다. 그런데 한 도메인이 다른 도메인을 import 하는 순간, 그 둘은 <strong>앞으로 함께만 옮길 수 있게</strong> 됩니다. 단기 비용을 아끼다 장기 선택지를 잃는 거죠.</p>
+        <p>그래서 Port 어댑터 패턴을 처음부터 강제했습니다. abuse 모듈이 lostpet 의 sighting 을 직접 disable 하지 않고, admin 이 별도 API 로 모더레이션을 호출하는 식. <em>"미루지 않고 미리 깔되, 추상화의 단위는 도메인 경계까지만"</em> — 이게 한 명이 풀스택을 다룰 때 가장 중요한 절제였습니다.</p>
       </div>
+
       <div class="refl-card">
         <div class="pill">DESIGN OPS</div>
-        <h4>시안 → 구현 순서 강제</h4>
-        <p>처음엔 코드부터 짜다 톤이 깨지는 일이 많아, 1440px HTML 시안 → PNG 캡처 → Flutter 구현의 정책을 만들었습니다. 동일 디자인 토큰을 CSS variable 과 Flutter AppColors 가 공유하니 일관성이 자연스럽게 유지됩니다.</p>
+        <h4>디자인 토큰은 한 번 정의되지 않는다</h4>
+        <p>처음엔 Figma 가 단일 진실 출처(SSOT)라고 믿었어요. 그런데 막상 Flutter 로 옮기는 순간 코드가 디자인을 깎아먹기 시작합니다 — 미묘하게 어긋난 padding, "이 색이 #5BA070 인가 #5DAA72 인가" 같은 흔들림.</p>
+        <p>그래서 CSS variable 에 정의된 토큰을 Flutter <code>AppColors</code> 가 그대로 미러링하도록 만들었습니다. 60+ HTML 시안과 앱 코드가 같은 팔레트를 공유 — 토큰을 바꾸면 양쪽이 같이 움직입니다. 시안은 합의된 도면이고 구현은 그걸 따라가는 것 — <strong>이 순서가 거꾸로 가면 톤이 먼저 무너집니다</strong>.</p>
       </div>
+
       <div class="refl-card">
         <div class="pill">OPS</div>
-        <h4>단일 인스턴스의 한계와 절충</h4>
-        <p>EC2 1대 운영이라 멀티 인스턴스 가정을 피하면서도, 미래에 옮길 수 있는 구조(예: refresh token DB, abuse rate limit DB)로 만들었습니다. in-memory blacklist 만 휘발성으로 두되 인터페이스가 추후 Redis 로 교체 가능하게 분리.</p>
+        <h4>오버엔지니어링과 미래 대비의 경계</h4>
+        <p>"나중에 Redis 가 필요할 거니까 지금 깔자"는 유혹이 컸어요. 다중 인스턴스, 분산 캐시, pub/sub 모두 의미는 분명하지만 — 지금 도입하면 운영 부담만 늘고 ROI 가 안 나옵니다.</p>
+        <p>타협점: <strong>코드는 안 짜되, 인터페이스는 열어둔다</strong>. <code>TokenBlacklistService</code> 는 in-memory 로 시작했지만 인터페이스가 분리돼 있어 추후 Redis 로 swap 가능. <code>refresh_tokens</code> 는 처음부터 DB 영속으로 — Redis 였다면 재시작마다 전 사용자 강제 로그아웃이라는 사고가 났겠죠. 영속성 보장 등급을 컴포넌트별로 일찍 정해두는 게 핵심이었습니다.</p>
       </div>
+
       <div class="refl-card">
         <div class="pill warn">TRADE-OFFS</div>
-        <h4>지금 안 만든 것</h4>
-        <p>채팅 실시간성(WebSocket), 멀티 인스턴스, Sentry/APM, 자동 스케일링은 의도적으로 미뤘습니다. 출시 후 사용자 규모와 실제 병목을 보고 도입할 항목으로 분류 — "예측 기반"이 아니라 "관측 기반" 의사결정을 선호합니다.</p>
+        <h4>"안 만든 것"의 목록도 결정입니다</h4>
+        <p>의도적으로 미룬 항목 — 실시간 채팅(WebSocket), 멀티 인스턴스, Sentry/APM, 자동 스케일링, refresh rotation 의 다중 디바이스 race 처리. 각 항목엔 "지금 도입하면 따라오는 것들"이 명확합니다. Sentry 는 도구 도입은 쉽지만 알람 정책·플레이북이 없으면 노이즈만 되고, WebSocket 은 nginx · 연결 상태 관리 · 클러스터 동기화가 함께 옵니다.</p>
+        <p>원칙은 단순합니다 — <strong>예측 기반이 아니라 관측 기반</strong>. 사용자 100명 미만에선 <code>docker logs</code> 와 <code>grep</code> 으로 충분합니다. 그 이상이 되면 그때 도입. 시니어 일의 절반은 <em>"무엇을 안 만들지 정하는 일"</em> 이라는 말, 이번에 체감했습니다.</p>
       </div>
     </div>
   </div>
