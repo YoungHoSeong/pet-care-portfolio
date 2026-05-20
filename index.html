@@ -184,7 +184,7 @@
 
   /* Code Highlights */
   .code-grid { display: grid; grid-template-columns: 1fr; gap: 22px; }
-  .code-card { background: var(--paper); border: 1.5px solid var(--border); border-radius: 24px; padding: 32px; box-shadow: var(--shadow-soft); }
+  .code-card { background: var(--paper); border: 1.5px solid var(--border); border-radius: 24px; padding: 32px; box-shadow: var(--shadow-soft); min-width: 0; }
   .code-card .head { display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-bottom: 18px; }
   .code-card .pill { display: inline-block; padding: 6px 14px; background: rgba(91,160,112,0.18); color: var(--brand-darker); border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: 0.04em; font-family: 'Quicksand', sans-serif; }
   .code-card .head .meta { flex: 1; min-width: 240px; }
@@ -251,6 +251,19 @@
     .section-title { font-size: 28px; }
     .hero-stats, .stack-grid, .features-grid, .gallery { grid-template-columns: 1fr 1fr; }
     .arch-row, .arch-row.three { grid-template-columns: 1fr; }
+
+    /* Code highlights — 모바일에서 카드/코드 압축, 가로 스크롤은 pre 안에서만 */
+    .code-card { padding: 22px 18px; }
+    .code-card h4 { font-size: 16px; }
+    .code-card .head { gap: 12px; margin-bottom: 14px; }
+    .code-card .why { font-size: 13px; }
+    .code-card pre.code {
+      padding: 14px 16px;
+      font-size: 11.5px;
+      line-height: 1.65;
+      border-radius: 10px;
+    }
+    .code-card .takeaway { font-size: 12.5px; }
   }
 
   svg { display: block; }
