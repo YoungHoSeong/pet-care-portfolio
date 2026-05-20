@@ -383,7 +383,7 @@
       <h2 class="section-title">시스템은 어떻게, <span class="script">구성도</span></h2>
       <p class="section-desc">
         3-Tier 클라이언트가 단일 Spring Boot API 와 통신합니다. 그 뒤로 MySQL · S3 · Firebase · LLM Service 가 붙고,
-        EC2 단일 인스턴스 위 Docker Compose 로 운영합니다. GitHub Actions 가 develop 머지 직후 자동 배포.
+        EC2 단일 인스턴스 위 Docker Compose 로 운영합니다. GitHub Actions 가 main 머지 직후 자동 배포 (develop → main 머지 트리거).
       </p>
     </div>
 
@@ -707,7 +707,7 @@
         </div>
         <ul>
           <li><strong>EC2 + Docker Compose</strong> · 단일 인스턴스에 petcare · llm-service · admin · nginx · mysql 5개 컨테이너</li>
-          <li><strong>GitHub Actions</strong> · develop 머지 시 자동 Docker 빌드 + EC2 배포</li>
+          <li><strong>GitHub Actions</strong> · main 머지 시 자동 Docker 빌드 + EC2 배포 (develop → main 머지 트리거)</li>
           <li><strong>nginx 라우팅</strong> · api.dogspurpose.net · admin.dogspurpose.net · llm.dogspurpose.net 도메인 분기</li>
           <li><strong>Docker 로그 로테이션</strong> · 50MB/5파일 자동 회전, 컨테이너 자동 복구</li>
         </ul>
