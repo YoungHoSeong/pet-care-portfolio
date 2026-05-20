@@ -211,16 +211,19 @@
   .code-card pre.code .an { color: #F78C6C; }       /* annotation @ */
   .code-card .takeaway {
     margin-top: 16px;
-    padding-top: 16px;
+    padding: 16px 0 0 22px;
     border-top: 1.5px dashed var(--border-warm);
-    display: flex; align-items: flex-start; gap: 10px;
     font-size: 13px; color: var(--ink); line-height: 1.65;
+    position: relative;
+    word-break: keep-all;
   }
   .code-card .takeaway::before {
     content: '→';
     color: var(--brand-darker);
     font-weight: 800;
-    flex-shrink: 0;
+    position: absolute;
+    left: 0;
+    top: 16px;
   }
   .code-card .takeaway em { font-style: normal; color: var(--brand-darker); font-weight: 700; background: var(--brand-subtle); padding: 1px 6px; border-radius: 4px; }
 
