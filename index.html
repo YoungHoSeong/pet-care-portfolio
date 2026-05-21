@@ -683,7 +683,7 @@
           <li><strong>Refresh token rotation</strong> · 디바이스별 격리(X-Device-Id) + 탈취 탐지(같은 토큰 재사용 시 user 전체 폐기)</li>
           <li><strong>Logout blacklist</strong> · 토큰을 즉시 무효화, 만료 자동 cleanup</li>
           <li><strong>비밀번호 정책</strong> · BCrypt strength 10, 8자+, 2가지 유형, 실패 5회/15분 잠금</li>
-          <li><strong>OAuth</strong> · 카카오·네이버 + 로컬 가입(이메일 인증)</li>
+          <li><strong>OAuth</strong> · 카카오·네이버 + 로컬 가입(이메일 인증). 이메일 동의 거부 시 백엔드가 자동 unlink 호출 → 다음 시도 시 동의 화면 재등장. 콜백 실패도 앱 스키마로 리다이렉트해 raw JSON 노출 차단</li>
         </ul>
       </div>
 
