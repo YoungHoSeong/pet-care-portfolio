@@ -895,6 +895,252 @@
   </div>
 </section>
 
+<!-- DOMAIN CASE STUDY — WALK -->
+<section id="walk-domain">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-tag"><span class="dot"></span>DOMAIN CASE STUDY</div>
+      <h2 class="section-title">산책 시스템 도메인 설계, <span class="script">walk</span></h2>
+      <p class="section-desc">"한 사람이 강아지 *세 마리를 동시에* 산책시키는 보호자가 *한 번의 산책 기록* 으로 모든 펫의 운동량을 채우길 원했다" — 그룹 산책을 *별도 테이블 없이 self-reference 로 정규화* 하면서 칼로리 · 경로 · 도전과제까지 한 트랜잭션 안에서 일관성 있게 처리하는 구조가 핵심이었습니다.</p>
+    </div>
+
+    <!-- ERD -->
+    <div class="erd-wrap">
+      <div class="erd">
+        <div class="erd-table">
+          <div class="head">self_walks <span class="sub">leader</span></div>
+          <div class="col"><span class="key">PK</span><span class="name">id</span><span class="type">BIGINT</span></div>
+          <div class="col"><span class="name">user_id</span><span class="type">BIGINT</span></div>
+          <div class="col"><span class="name">pet_id</span><span class="type">BIGINT</span></div>
+          <div class="col"><span class="key">★</span><span class="name">group_walk_id</span><span class="type">FK→self.id</span></div>
+          <div class="col"><span class="name">status</span><span class="type">IN_PROGRESS / DONE</span></div>
+          <div class="col"><span class="name">distance_km</span><span class="type">DECIMAL</span></div>
+          <div class="col"><span class="name">duration_min</span><span class="type">INT</span></div>
+          <div class="col"><span class="name">owner_calories</span><span class="type">INT</span></div>
+          <div class="col"><span class="name">pet_calories</span><span class="type">INT (펫별 다름)</span></div>
+          <div class="col"><span class="name">preview_polyline</span><span class="type">TEXT (캐시)</span></div>
+          <div class="note">단독: group_walk_id = NULL<br>대표: group_walk_id = 자기 id</div>
+        </div>
+
+        <div class="erd-rel">
+          <div class="card">1 : N (self)</div>
+          <div class="line"></div>
+          <div class="desc">대표 walk 1 + 멤버 walk N<br>UNIQUE (group_walk_id, pet_id)<br>같은 그룹 같은 펫 중복 금지</div>
+        </div>
+
+        <div class="erd-table">
+          <div class="head">self_walks <span class="sub">(self-ref)</span></div>
+          <div class="col"><span class="key">PK</span><span class="name">id</span><span class="type">BIGINT</span></div>
+          <div class="col"><span class="key fk">FK</span><span class="name">group_walk_id</span><span class="type">→ leader.id</span></div>
+          <div class="col"><span class="name">pet_id</span><span class="type">멤버 펫</span></div>
+          <div class="col"><span class="name">status</span><span class="type">IN_PROGRESS / DONE</span></div>
+          <div class="col"><span class="name">distance_km</span><span class="type">대표와 동일</span></div>
+          <div class="col"><span class="name">pet_calories</span><span class="type">멤버 펫 기준 재계산</span></div>
+          <div class="col"><span class="name">preview_polyline</span><span class="type">NULL (대표만 보유)</span></div>
+          <div class="note">멤버 walk — 자체 경로 없음<br>조회 시 group_walk_id 로 대표 참조</div>
+        </div>
+      </div>
+
+      <!-- 두 번째 ERD 줄 — route_points -->
+      <div class="erd" style="margin-top: 24px;">
+        <div class="erd-table">
+          <div class="head">self_walks <span class="sub">대표 또는 단독</span></div>
+          <div class="col"><span class="key">PK</span><span class="name">id</span><span class="type">BIGINT</span></div>
+          <div class="note">멤버 walk 에는 route_points 행 없음</div>
+        </div>
+
+        <div class="erd-rel">
+          <div class="card">1 : N (대표만)</div>
+          <div class="line"></div>
+          <div class="desc">GPS 포인트는 *리더 walk_id* 에만<br>멤버 id 호출도 자동으로 대표로 재할당</div>
+        </div>
+
+        <div class="erd-table">
+          <div class="head">self_walk_route_points <span class="sub">GPS</span></div>
+          <div class="col"><span class="key">PK</span><span class="name">id</span><span class="type">BIGINT</span></div>
+          <div class="col"><span class="key fk">FK</span><span class="name">walk_id</span><span class="type">→ 대표 self_walks.id</span></div>
+          <div class="col"><span class="name">latitude</span><span class="type">DECIMAL(10,7)</span></div>
+          <div class="col"><span class="name">longitude</span><span class="type">DECIMAL(10,7)</span></div>
+          <div class="col"><span class="name">recorded_at</span><span class="type">DATETIME</span></div>
+          <div class="note">조회 시 polyline 재계산 안 함 → preview_polyline 캐시 활용</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 핵심 설계 결정 -->
+    <div class="design-grid">
+      <div class="design-card">
+        <div class="pill">DESIGN · GROUP</div>
+        <h4>별도 테이블 없이 *self-reference* 그룹 산책</h4>
+        <p>한 번에 여러 펫을 산책시키는 보호자가 흔합니다. 그룹마다 별도 walks_group 마스터 테이블을 두는 대신, <em>대표 walk 가 자기 id 를 group_walk_id 에 박는</em> self-reference 패턴 (V87 마이그레이션) 으로 해결했습니다.</p>
+        <p>트랜잭션 한 번에 saveAndFlush 로 대표를 먼저 영속화 → 자기 id 를 group_walk_id 로 지정 → 멤버 saveAll. 단독 산책은 group_walk_id NULL — <em>기존 데이터에 영향 0</em> 이라 마이그레이션 비용도 0 입니다.</p>
+      </div>
+
+      <div class="design-card">
+        <div class="pill">ROUTE · NORMALIZE</div>
+        <h4>경로는 *리더에게만*, 호출은 *어디서든*</h4>
+        <p>GPS route_points 가 그룹 멤버 수만큼 곱해 저장되면 디스크와 polyline 계산이 N배. 리더 walk_id 에만 한 벌 저장하고 <em>멤버 walk 는 경로 없음</em> — *멤버 id 로 호출해도 서버가 대표 id 로 재할당* 해 클라이언트는 그룹 여부를 몰라도 됩니다.</p>
+        <p>완료 시점에 한 번 polyline 인코딩 → <em>preview_polyline (TEXT)</em> 컬럼에 캐시. 카드 미리보기는 route_points 를 다시 집계하지 않아 <em>조회당 DB hit 1회</em> 로 충분합니다.</p>
+      </div>
+
+      <div class="design-card">
+        <div class="pill">EVENT · DECOUPLE</div>
+        <h4>산책 완료 = *도메인 이벤트의 트리거*</h4>
+        <p>completeWalk 한 호출이 (1) Haversine 거리 합산 + 몸무게/사이즈 기반 펫 칼로리 계산 (2) <em>careSchedulePort.completeTask</em> 로 그날 산책 일정 자동 완료 (3) <em>challengeEvaluator</em> 가 연속일수/누적 거리/누적 횟수 갱신 — 세 부수효과를 한 트랜잭션에서 호출합니다.</p>
+        <p>핵심은 부수효과 호출이 <em>try-catch + warn 로그</em> 로 래핑돼 있다는 점. 알림 / 챌린지 실패가 산책 완료 자체를 막지 못합니다 — <em>주 비즈니스의 견고함 우선</em>, 부수효과는 best-effort.</p>
+      </div>
+    </div>
+
+    <!-- 흐름도 -->
+    <div class="flow-wrap" style="margin-bottom: 18px;">
+      <div class="flow-title"><span class="num">1</span>다견 그룹 산책 시작 — self-reference 패턴</div>
+      <div class="flow-steps">
+        <div class="flow-step"><div class="lbl">CLIENT</div><div class="body">POST /self-walks/start { petIds: [12, 17, 21] }</div></div>
+        <div class="flow-step"><div class="lbl">CHECK</div><div class="body">IN_PROGRESS 산책 1개 제약 — 동시 진행 차단</div></div>
+        <div class="flow-step"><div class="lbl">LEADER SAVE</div><div class="body">leader = SelfWalk.create(petId=12) → <code>saveAndFlush</code> → id 확보 → <code>assignAsGroupLeader()</code></div></div>
+        <div class="flow-step"><div class="lbl">MEMBERS SAVE</div><div class="body">[17, 21] → SelfWalk.create(groupWalkId=leader.id) → saveAll. 트랜잭션 한 묶음</div></div>
+        <div class="flow-step"><div class="lbl">RESPONSE</div><div class="body">대표 walk 1건 반환. 클라이언트는 멤버 walk ID 몰라도 됨</div></div>
+      </div>
+    </div>
+
+    <div class="flow-wrap">
+      <div class="flow-title"><span class="num">2</span>완료 한 번에 — 거리·칼로리·일정·챌린지 fan-out</div>
+      <div class="flow-steps">
+        <div class="flow-step"><div class="lbl">COMPLETE</div><div class="body">POST /self-walks/{walkId}/complete</div></div>
+        <div class="flow-step"><div class="lbl">RESOLVE</div><div class="body"><code>resolveRepresentative</code> — 멤버 id 호출도 대표로 정규화</div></div>
+        <div class="flow-step"><div class="lbl">CALCULATE</div><div class="body">Haversine 누적 거리 + MET 기반 사용자 칼로리 + 펫별 weight/size 계수로 멤버마다 다른 칼로리</div></div>
+        <div class="flow-step"><div class="lbl">POLYLINE</div><div class="body">RoutePolylineEncoder 1회 → preview_polyline 캐시</div></div>
+        <div class="flow-step"><div class="lbl">GROUP COMPLETE</div><div class="body">members.forEach(complete) — 멤버는 polyline NULL, 대표만 보유</div></div>
+        <div class="flow-step"><div class="lbl">EVENTS</div><div class="body">careSchedulePort + challengeEvaluator. 실패는 warn 로그만 — 본 트랜잭션 통과</div></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- DOMAIN CASE STUDY — LOST PET -->
+<section id="lostpet-domain">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-tag"><span class="dot"></span>DOMAIN CASE STUDY</div>
+      <h2 class="section-title">잃은 펫 시스템 도메인 설계, <span class="script">lost pet</span></h2>
+      <p class="section-desc">"위치 동의한 인근 사용자 *수천 명* 에게 한 번에 신고를 알리고, 신고 사진은 펫 프로필이 바뀌어도 *그 시점 그대로* 남아야 한다" — 발송 한도 · 사진 스냅샷 · 상태 머신 · 자동 종료를 한 도메인 안에서 *알림 폭주와 데이터 위생* 을 동시에 막는 구조가 핵심이었습니다.</p>
+    </div>
+
+    <!-- ERD -->
+    <div class="erd-wrap">
+      <div class="erd">
+        <div class="erd-table">
+          <div class="head">lost_pet_reports <span class="sub">신고</span></div>
+          <div class="col"><span class="key">PK</span><span class="name">id</span><span class="type">BIGINT</span></div>
+          <div class="col"><span class="name">reporter_user_id</span><span class="type">BIGINT</span></div>
+          <div class="col"><span class="name">pet_id</span><span class="type">BIGINT</span></div>
+          <div class="col"><span class="name">lost_latitude</span><span class="type">DECIMAL(10,7)</span></div>
+          <div class="col"><span class="name">lost_longitude</span><span class="type">DECIMAL(10,7)</span></div>
+          <div class="col"><span class="name">radius_km</span><span class="type">0.5 ~ 5.0</span></div>
+          <div class="col"><span class="name">status</span><span class="type">SEARCHING / FOUND / CLOSED</span></div>
+          <div class="col"><span class="name">bumped_at</span><span class="type">끌어올림 시각</span></div>
+          <div class="col"><span class="name">boost_count</span><span class="type">평생 끌어올림 횟수</span></div>
+          <div class="col"><span class="name">push_sent_count</span><span class="type">발송 인원</span></div>
+          <div class="col"><span class="name">use_yn</span><span class="type">모더레이션 플래그</span></div>
+          <div class="note">단방향 상태 머신 + 30일 cron 자동 종료</div>
+        </div>
+
+        <div class="erd-rel">
+          <div class="card">1 : N (스냅샷)</div>
+          <div class="line"></div>
+          <div class="desc">사진은 등록 시점에 박힘<br>이후 펫 프로필 변경에도 *불변*<br>V75 정규화 + V86 backfill</div>
+        </div>
+
+        <div class="erd-table">
+          <div class="head">lost_pet_photos <span class="sub">snapshot</span></div>
+          <div class="col"><span class="key">PK</span><span class="name">id</span><span class="type">BIGINT</span></div>
+          <div class="col"><span class="key fk">FK</span><span class="name">report_id</span><span class="type">→ lost_pet_reports</span></div>
+          <div class="col"><span class="name">photo_url</span><span class="type">VARCHAR(500)</span></div>
+          <div class="col"><span class="name">sequence</span><span class="type">0 ~ 4</span></div>
+          <div class="note">등록 시점에 펫 프로필 사진을 박는<br>immutable 스냅샷</div>
+        </div>
+      </div>
+
+      <!-- 두 번째 ERD 줄 — sightings -->
+      <div class="erd" style="margin-top: 24px;">
+        <div class="erd-table">
+          <div class="head">lost_pet_reports <span class="sub">(연결)</span></div>
+          <div class="col"><span class="key">PK</span><span class="name">id</span><span class="type">BIGINT</span></div>
+          <div class="note">위 테이블 동일 — 1:N 관계 표시용</div>
+        </div>
+
+        <div class="erd-rel">
+          <div class="card">1 : N (제보)</div>
+          <div class="line"></div>
+          <div class="desc">발견 제보는 신고자에게 즉시 푸시<br>차단/모더레이션 두 단계 가시성</div>
+        </div>
+
+        <div class="erd-table">
+          <div class="head">lost_pet_sightings <span class="sub">제보</span></div>
+          <div class="col"><span class="key">PK</span><span class="name">id</span><span class="type">BIGINT</span></div>
+          <div class="col"><span class="key fk">FK</span><span class="name">report_id</span><span class="type">→ lost_pet_reports</span></div>
+          <div class="col"><span class="name">user_id</span><span class="type">제보자</span></div>
+          <div class="col"><span class="name">comment</span><span class="type">VARCHAR</span></div>
+          <div class="col"><span class="name">sighting_latitude</span><span class="type">DECIMAL(10,7)</span></div>
+          <div class="col"><span class="name">sighting_longitude</span><span class="type">DECIMAL(10,7)</span></div>
+          <div class="col"><span class="name">use_yn</span><span class="type">모더레이션</span></div>
+          <div class="note">차단 사용자 콘텐츠 자동 숨김</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 핵심 설계 결정 -->
+    <div class="design-grid">
+      <div class="design-card">
+        <div class="pill">BROADCAST · CAP</div>
+        <h4>*반경 + 동의 + 5000명 cap* 으로 막은 알림 폭주</h4>
+        <p>신고 발송 대상은 단순한 "전체" 가 아닙니다. <em>lostpetNotificationConsent = Y</em> 동의 사용자 + 신고 좌표로부터 0.5~5km Haversine 반경 + 신고자 본인 제외 + <em>거리순 정렬 후 LIMIT 5,000</em> — 네 조건 모두 한 QueryDsl 쿼리에서 처리합니다.</p>
+        <p>cap 이 없으면 한 신고가 도시 전체에 푸시를 쏴 <em>FCM timeout</em> 과 *스팸성 알림* 양쪽이 터집니다. cap + 거리순 ORDER BY 로 <em>가장 가까운 5000명</em> 만 — 사용자 경험과 운영 안정성을 동시에 잡았습니다.</p>
+      </div>
+
+      <div class="design-card">
+        <div class="pill">SNAPSHOT · IMMUTABLE</div>
+        <h4>신고 사진은 *그 시점 그대로* 박는다</h4>
+        <p>신고 등록 시 첨부 사진이 없으면 <em>그 시점의 펫 프로필 사진을 lost_pet_photos 에 스냅샷으로 INSERT</em>. 이후 보호자가 펫 프로필을 바꿔도 신고에 보이는 사진은 그대로 — 잃어버린 *그 날* 의 외모를 인근 사용자가 봐야 하기 때문입니다.</p>
+        <p>기존 데이터는 V86 마이그레이션으로 backfill. 조회 로직은 <em>단일 출처 (lost_pet_photos)</em> 만 보면 되어 단순해지고, 펫 도메인을 런타임에 조회하던 N+1 도 사라졌습니다.</p>
+      </div>
+
+      <div class="design-card">
+        <div class="pill">LIFECYCLE · HYGIENE</div>
+        <h4>30일 자동 종료 + 끌어올림 쿨다운</h4>
+        <p>신고는 <em>SEARCHING → FOUND/CLOSED</em> 단방향 상태 머신입니다. <em>bumped_at + 30일</em> 지나면 새벽 3시 스케줄러가 자동 CLOSED — 운영자가 일일이 정리할 필요 없이 데이터 위생이 유지됩니다.</p>
+        <p>끌어올림은 <em>30일 쿨다운 + 플랜별 평생 한도</em> (app_settings 키 분기) 로 제어. <em>quotaPort.consume</em> 으로 일일 발송 한도도 차감 — 한 사람이 같은 펫을 반복 신고해 알림을 도배하는 경로를 <em>세 겹</em> 으로 막았습니다.</p>
+      </div>
+    </div>
+
+    <!-- 흐름도 -->
+    <div class="flow-wrap" style="margin-bottom: 18px;">
+      <div class="flow-title"><span class="num">1</span>신고 등록 — 동의 사용자 5000명 cap 푸시</div>
+      <div class="flow-steps">
+        <div class="flow-step"><div class="lbl">CLIENT</div><div class="body">POST /lost-pets { lat, lng, radiusKm: 2.5, photos[] }</div></div>
+        <div class="flow-step"><div class="lbl">GUARD</div><div class="body">verifyWriterAccess + 같은 펫 SEARCHING 중복 차단</div></div>
+        <div class="flow-step"><div class="lbl">QUOTA</div><div class="body">quotaPort.consume(<code>lostpet.broadcast</code>) — 한도 차감</div></div>
+        <div class="flow-step"><div class="lbl">SNAPSHOT</div><div class="body">사진 0장이면 *펫 프로필 URL 을 lost_pet_photos 에 박음*. 이후 펫이 바뀌어도 신고 표시는 불변</div></div>
+        <div class="flow-step"><div class="lbl">QUERY</div><div class="body">반경 + 동의 Y + 거리 ASC + LIMIT 5000 한 QueryDsl 쿼리</div></div>
+        <div class="flow-step"><div class="lbl">NOTIFY</div><div class="body">FCM 일괄 발송. 실패는 warn, sent count 기록</div></div>
+      </div>
+    </div>
+
+    <div class="flow-wrap">
+      <div class="flow-title"><span class="num">2</span>끌어올림 쿨다운 + 30일 자동 종료</div>
+      <div class="flow-steps">
+        <div class="flow-step"><div class="lbl">BOOST API</div><div class="body">POST /lost-pets/{id}/boost</div></div>
+        <div class="flow-step"><div class="lbl">CHECKS</div><div class="body">본인 + SEARCHING + bumped_at + 30일 경과 + 평생 한도 미달</div></div>
+        <div class="flow-step"><div class="lbl">BUMP</div><div class="body">bumped_at = NOW(), boost_count += 1, 알림 재발송</div></div>
+        <div class="flow-step"><div class="lbl">CRON 03:00</div><div class="body">LostPetAutoCloseJob — bumped_at + 30일 지난 SEARCHING 일괄 CLOSED</div></div>
+        <div class="flow-step"><div class="lbl">INVARIANT</div><div class="body">끌어올린 신고는 그 시점부터 30일 다시 카운트. *데이터 위생은 자동, 사용자 노력 불필요*</div></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
 <!-- REFLECTION -->
 <section id="reflection">
   <div class="container">
