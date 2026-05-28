@@ -736,6 +736,165 @@
   </div>
 </section>
 
+<!-- DOMAIN CASE STUDY — SUBSCRIPTION -->
+<section id="subscription-domain">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-tag"><span class="dot"></span>DOMAIN CASE STUDY</div>
+      <h2 class="section-title">구독 시스템 도메인 설계, <span class="script">subscription</span></h2>
+      <p class="section-desc">"한 명이 풀스택을 다루는 환경에서도 *결제 / 자동 갱신 / 플랜 추가* 같은 미래 확장을 막지 않는 구조"가 핵심이었습니다. 단일 도메인의 ERD / 상태 전이 / 핵심 설계 결정을 한 곳에 모았습니다.</p>
+    </div>
+
+    <style>
+      .erd-wrap { background: var(--paper); border: 1.5px solid var(--border); border-radius: 24px; padding: 32px; box-shadow: var(--shadow-soft); margin-bottom: 32px; overflow-x: auto; }
+      .erd { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; align-items: start; min-width: 760px; }
+      .erd-table { background: var(--brand-subtle); border: 1.5px solid var(--brand-soft); border-radius: 14px; overflow: hidden; }
+      .erd-table .head { background: linear-gradient(135deg, var(--brand) 0%, var(--brand-deep) 100%); color: #fff; padding: 12px 16px; font-weight: 800; font-size: 14px; letter-spacing: -0.01em; display: flex; justify-content: space-between; align-items: center; }
+      .erd-table .head .sub { font-family: 'Caveat', cursive; font-weight: 500; font-size: 16px; opacity: 0.85; }
+      .erd-table .col { padding: 8px 16px; font-size: 12.5px; border-top: 1px solid rgba(91,160,112,0.18); display: flex; gap: 8px; }
+      .erd-table .col .key { font-family: 'Quicksand', sans-serif; font-weight: 700; font-size: 10px; color: var(--brand-darker); background: rgba(255,255,255,0.7); padding: 1px 6px; border-radius: 4px; min-width: 28px; text-align: center; line-height: 16px; height: 18px; }
+      .erd-table .col .key.fk { color: #B45A22; background: rgba(255,203,164,0.5); }
+      .erd-table .col .name { font-weight: 600; color: var(--ink); }
+      .erd-table .col .type { color: var(--ink-muted); font-family: 'Quicksand', sans-serif; font-size: 11px; margin-left: auto; }
+      .erd-table .note { padding: 8px 16px; font-size: 11px; color: var(--ink-soft); background: rgba(255,255,255,0.4); border-top: 1px dashed rgba(91,160,112,0.25); font-style: italic; }
+      .erd-rel { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; padding-top: 60px; }
+      .erd-rel .line { width: 100%; height: 2px; background: var(--brand-deep); position: relative; }
+      .erd-rel .line::before, .erd-rel .line::after { content: ''; position: absolute; top: -5px; width: 12px; height: 12px; border: 2px solid var(--brand-deep); border-radius: 50%; background: var(--paper); }
+      .erd-rel .line::before { left: -8px; }
+      .erd-rel .line::after { right: -8px; }
+      .erd-rel .card { font-family: 'Quicksand', sans-serif; font-size: 11px; font-weight: 800; color: var(--brand-darker); letter-spacing: 0.04em; background: var(--brand-soft); padding: 4px 12px; border-radius: 999px; }
+      .erd-rel .desc { font-size: 11px; color: var(--ink-soft); text-align: center; line-height: 1.4; max-width: 160px; }
+
+      .design-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 32px; }
+      @media (max-width: 880px) { .design-grid { grid-template-columns: 1fr; } .erd { grid-template-columns: 1fr; } .erd-rel { padding-top: 0; transform: rotate(90deg); margin: 8px auto; max-width: 200px; } }
+      .design-card { background: var(--paper); border: 1.5px solid var(--border); border-radius: 18px; padding: 20px; box-shadow: var(--shadow-soft); }
+      .design-card .pill { display: inline-block; padding: 4px 10px; background: var(--brand-soft); color: var(--brand-darker); border-radius: 999px; font-family: 'Quicksand', sans-serif; font-size: 10px; font-weight: 800; letter-spacing: 0.08em; margin-bottom: 10px; }
+      .design-card h4 { font-size: 15px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.01em; }
+      .design-card p { font-size: 13px; color: var(--ink-soft); line-height: 1.65; }
+      .design-card p + p { margin-top: 8px; }
+      .design-card em { font-style: normal; color: var(--brand-darker); font-weight: 700; }
+
+      .flow-wrap { background: var(--paper); border: 1.5px solid var(--border); border-radius: 20px; padding: 28px; box-shadow: var(--shadow-soft); }
+      .flow-title { font-size: 14px; font-weight: 800; color: var(--ink); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+      .flow-title .num { width: 24px; height: 24px; background: var(--brand-deep); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-family: 'Quicksand', sans-serif; }
+      .flow-steps { display: flex; align-items: stretch; gap: 12px; flex-wrap: wrap; }
+      .flow-step { flex: 1 1 140px; min-width: 140px; background: var(--brand-subtle); border: 1.5px solid var(--brand-soft); border-radius: 12px; padding: 12px 14px; position: relative; }
+      .flow-step .lbl { font-family: 'Quicksand', sans-serif; font-size: 10px; font-weight: 800; color: var(--brand-darker); letter-spacing: 0.08em; margin-bottom: 4px; }
+      .flow-step .body { font-size: 12.5px; color: var(--ink); line-height: 1.5; }
+      .flow-step .body code { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11.5px; background: rgba(91,160,112,0.12); padding: 1px 5px; border-radius: 4px; }
+      .flow-step::after { content: '→'; position: absolute; right: -14px; top: 50%; transform: translateY(-50%); color: var(--brand-deep); font-weight: 800; font-size: 14px; }
+      .flow-step:last-child::after { display: none; }
+    </style>
+
+    <!-- ERD -->
+    <div class="erd-wrap">
+      <div class="erd">
+        <div class="erd-table">
+          <div class="head">users <span class="sub">user core</span></div>
+          <div class="col"><span class="key">PK</span><span class="name">id</span><span class="type">BIGINT</span></div>
+          <div class="col"><span class="name">name</span><span class="type">VARCHAR(20)</span></div>
+          <div class="col"><span class="name">email</span><span class="type">VARCHAR(100)</span></div>
+          <div class="col"><span class="name">use_yn</span><span class="type">VARCHAR(1)</span></div>
+          <div class="col"><span class="name">profile_image_url</span><span class="type">VARCHAR(512)</span></div>
+          <div class="note">단일 진실 출처. soft delete (use_yn=N)</div>
+        </div>
+
+        <div class="erd-rel">
+          <div class="card">1 : N</div>
+          <div class="line"></div>
+          <div class="desc">한 사용자 → 여러 구독 이력<br>(ACTIVE 1 + EXPIRED N)</div>
+        </div>
+
+        <div class="erd-table">
+          <div class="head">user_subscriptions <span class="sub">subscription</span></div>
+          <div class="col"><span class="key">PK</span><span class="name">id</span><span class="type">BIGINT</span></div>
+          <div class="col"><span class="key fk">FK</span><span class="name">user_id</span><span class="type">BIGINT</span></div>
+          <div class="col"><span class="name">plan</span><span class="type">FREE/BASIC/PREMIUM</span></div>
+          <div class="col"><span class="name">status</span><span class="type">ACTIVE/EXPIRED</span></div>
+          <div class="col"><span class="name">started_at</span><span class="type">DATETIME</span></div>
+          <div class="col"><span class="name">expired_at</span><span class="type">NULL=무기한</span></div>
+          <div class="col"><span class="name">source</span><span class="type">SIGNUP/MANUAL/PAYMENT</span></div>
+          <div class="col"><span class="name">payment_id</span><span class="type">→ payments (Phase 2)</span></div>
+          <div class="col"><span class="key">★</span><span class="name">active_marker</span><span class="type">VIRTUAL (V91)</span></div>
+          <div class="note">UNIQUE (active_marker) — ACTIVE 만 user 당 1개</div>
+        </div>
+      </div>
+
+      <!-- 두 번째 ERD 줄 — quota + settings -->
+      <div class="erd" style="margin-top: 24px;">
+        <div class="erd-table">
+          <div class="head">users <span class="sub">(연결)</span></div>
+          <div class="col"><span class="key">PK</span><span class="name">id</span><span class="type">BIGINT</span></div>
+          <div class="note">위 테이블 동일 — 1:N 관계 표시용</div>
+        </div>
+
+        <div class="erd-rel">
+          <div class="card">1 : N</div>
+          <div class="line"></div>
+          <div class="desc">사용자 × feature × 날짜<br>UPSERT 패턴</div>
+        </div>
+
+        <div class="erd-table">
+          <div class="head">user_daily_quota_usage <span class="sub">quota</span></div>
+          <div class="col"><span class="key">PK</span><span class="name">id</span><span class="type">BIGINT</span></div>
+          <div class="col"><span class="key fk">FK</span><span class="name">user_id</span><span class="type">BIGINT</span></div>
+          <div class="col"><span class="name">feature</span><span class="type">lostpet.broadcast 등</span></div>
+          <div class="col"><span class="name">usage_date</span><span class="type">DATE (월별=1일)</span></div>
+          <div class="col"><span class="name">count</span><span class="type">INT</span></div>
+          <div class="note">UNIQUE (user_id, feature, usage_date)<br>↓ 한도값은 app_settings 에서 조회 (subscription.{feature}.{cycle}_limit.{plan})</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 핵심 설계 결정 -->
+    <div class="design-grid">
+      <div class="design-card">
+        <div class="pill">DESIGN · HISTORY</div>
+        <h4>UPDATE 대신 *회전 (rotation)*</h4>
+        <p>등급 변경 시 기존 행을 update 하지 않고 <em>EXPIRED 로 보존</em> + <em>새 ACTIVE INSERT</em>. 언제 어떤 plan 이었는지 추적 가능 — 결제 환불·분쟁·통계 모두 유리합니다.</p>
+        <p>단점은 행 누적이지만 <em>active_marker generated column (V91)</em> 으로 인덱스만 차지하고 디스크 비용 0. *현재 행 보호 + 이력 누적* 을 동시에 달성한 패턴.</p>
+      </div>
+
+      <div class="design-card">
+        <div class="pill">RUNTIME · LAZY</div>
+        <h4>Cron 없이 *조회 시점 만료*</h4>
+        <p><em>getActivePlan(userId)</em> 호출 시 expired_at 이 지났으면 그 자리에서 status=EXPIRED 로 갱신하고 FREE 반환. 별도 배치 작업 없음 — 운영 부담 감소.</p>
+        <p>약점은 <em>"조회 안 한 사용자는 DB 상 ACTIVE 그대로"</em> — 통계에 약간 오차. 다만 어드민 stats 는 *count* 쿼리라 실제 사용량과 큰 차이 없고, 운영 사용자 100명 미만에선 cron 도입이 오버엔지니어링.</p>
+      </div>
+
+      <div class="design-card">
+        <div class="pill">CONFIG · DECOUPLE</div>
+        <h4>한도는 *DB 에 분리* (app_settings)</h4>
+        <p>플랜별 한도 (FREE=1, BASIC=3, PREMIUM=10) 를 코드 상수가 아닌 <em>app_settings</em> 테이블에 둠. 한도 변경 = DB 한 행 UPDATE. 코드 / 배포 불필요.</p>
+        <p>키 명명 규칙: <em>subscription.{feature}.{cycle}_limit.{plan}</em>. 새 feature 추가 시 settings 행만 추가하면 코드 영향 최소. 운영에서 *플랜 정책 실험* 이 쉬워짐.</p>
+      </div>
+    </div>
+
+    <!-- 흐름도 -->
+    <div class="flow-wrap" style="margin-bottom: 18px;">
+      <div class="flow-title"><span class="num">1</span>회원가입 → FREE 자동 부여</div>
+      <div class="flow-steps">
+        <div class="flow-step"><div class="lbl">SIGNUP</div><div class="body">POST /users 또는 OAuth 콜백</div></div>
+        <div class="flow-step"><div class="lbl">USER 도메인</div><div class="body">UserService.save / SocialLoginService.signup</div></div>
+        <div class="flow-step"><div class="lbl">PORT</div><div class="body"><code>subscriptionPort.assignFreeOnSignup(userId)</code></div></div>
+        <div class="flow-step"><div class="lbl">ADAPTER</div><div class="body">SubscriptionPortAdapter → upgradePlan(FREE, SIGNUP)</div></div>
+        <div class="flow-step"><div class="lbl">DB INSERT</div><div class="body">user_subscriptions: status=ACTIVE, plan=FREE, active_marker=user_id</div></div>
+      </div>
+    </div>
+
+    <div class="flow-wrap">
+      <div class="flow-title"><span class="num">2</span>어드민 등급 변경 — 회전 패턴</div>
+      <div class="flow-steps">
+        <div class="flow-step"><div class="lbl">ADMIN</div><div class="body">KPI 클릭 → 행 클릭 → 등급 변경 다이얼로그</div></div>
+        <div class="flow-step"><div class="lbl">API</div><div class="body">POST /admin/subscriptions { plan: PREMIUM, durationMonths: 12 }</div></div>
+        <div class="flow-step"><div class="lbl">EXPIRE OLD</div><div class="body">기존 ACTIVE → status=EXPIRED. <code>active_marker</code> 자동 NULL (V91 generated)</div></div>
+        <div class="flow-step"><div class="lbl">INSERT NEW</div><div class="body">새 ACTIVE 행 INSERT. <code>active_marker=user_id</code> — 옛 EXPIRED 가 NULL 이라 충돌 0</div></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
 <!-- REFLECTION -->
 <section id="reflection">
   <div class="container">
