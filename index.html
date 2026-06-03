@@ -281,7 +281,7 @@
     <div class="eyebrow">a soft companion for your pet,</div>
     <h1>반려동물 통합 케어<br>플랫폼 <span class="accent">PetCare</span></h1>
     <p class="lead">
-      산책·픽업·잃어버린 반려동물·AI 간식 분석을 한 앱에서. 보호자(Owner)와 워커(Provider) 양쪽을 매칭하는
+      산책·픽업·위탁 돌봄·잃어버린 반려동물·AI 간식 분석을 한 앱에서. 보호자(Owner)와 워커(Provider) 양쪽을 매칭하는
       양면 시장 구조에, 모더레이션과 운영을 위한 관리자(Admin) 페이지까지 갖춘 3-Tier 서비스를
       Spring Boot 4 / Flutter / React 풀스택으로 직접 설계·구현했습니다.
     </p>
@@ -531,6 +531,20 @@
       </div>
 
       <div class="feature-card">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+        <div class="t">위탁 돌봄 (Boarding)</div>
+        <div class="d">반려동물을 업체에 맡기는 위탁(보딩) 서비스. <strong>위탁 업체 검색 → 1박 요금 예약 → 입실/퇴실</strong>. 프로바이더는 <strong>시설 로스터(today's stays)</strong>에서 식사·투약을 MARK DONE으로 체크하고, 완료 시 보호자에게 즉시 푸시. 돌봄 완료는 <strong>진행 중 위탁 예약의 담당 프로바이더만</strong> 가능한 computed access — 별도 행 없이 접근 시점 계산, 퇴실 시 자동 소멸.</div>
+        <div class="stack-mini">BOARDING · COMPUTED ACCESS · ROSTER</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
+        <div class="t">업체 입점 (B2B · SaaS-ready)</div>
+        <div class="d">개인(SOLO) 프로바이더가 <strong>사업자 등록</strong>으로 업체(BUSINESS)로 전환, 직원을 <strong>OWNER · MANAGER · STAFF</strong> 역할로 초대. "모두가 조직" 모델로 1인부터 다인 업체까지 단일 구조. 관리자 웹에서 업체 심사·정지 + <strong>매출·완료·평점 통계</strong>(소속 프로바이더 수익 상세로 드릴다운).</div>
+        <div class="stack-mini">ORG / STAFF · B2B · ADMIN STATS</div>
+      </div>
+
+      <div class="feature-card">
         <div class="ic coral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="13" rx="2"/><circle cx="12" cy="13" r="3"/></svg></div>
         <div class="t">AI 간식 분석</div>
         <div class="d">사진 한 장 → MIME 화이트리스트 검증 → 자체 LLM 게이트웨이로 영양·위험·대체재 평가.</div>
@@ -554,8 +568,8 @@
       <div class="feature-card">
         <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
         <div class="t">이메일 인증 · OAuth · 계정</div>
-        <div class="d">로컬 가입(이메일 인증) + 카카오·네이버 OAuth + 비밀번호 재설정 + 계정 잠금(5회/15분) + 5개 사유 abuse 신고.</div>
-        <div class="stack-mini">LOCAL · KAKAO · NAVER · BCRYPT · RATE-LIMIT</div>
+        <div class="d">로컬 가입(이메일 인증) + 카카오·네이버 OAuth + 비밀번호 재설정 + 계정 잠금(5회/15분) + 5개 사유 abuse 신고. 발송은 <strong>Amazon SES</strong>(전용 도메인 <code>noreply@dogspurpose.net</code> · DKIM·SPF·DMARC로 인박스 도달) + 브랜드 HTML 템플릿, 수신은 ImprovMX 포워딩.</div>
+        <div class="stack-mini">LOCAL · KAKAO · NAVER · SES · DKIM/SPF/DMARC</div>
       </div>
 
       <div class="feature-card">
