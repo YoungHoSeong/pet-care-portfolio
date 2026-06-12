@@ -654,6 +654,104 @@
   </div>
 </section>
 
+<!-- EVENT-DRIVEN -->
+<section id="event-driven">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-tag"><span class="dot"></span>EVENT-DRIVEN</div>
+      <h2 class="section-title">사이드이펙트를 핵심에서 떼어내다, <span class="script">events</span></h2>
+      <p class="section-desc">알림(푸시·메일)은 비즈니스의 본류가 아니라 <em>결과</em>입니다. 발송을 트랜잭션과 요청 스레드에서 떼어내, 핵심 로직은 빠르게 커밋하고 부가효과는 커밋 이후 비동기로 흘려보냈습니다. 5개 도메인 13개 이벤트가 같은 규약으로 돕니다.</p>
+    </div>
+
+    <!-- FLOW -->
+    <div class="flow-wrap" style="margin-bottom:28px;">
+      <div class="flow-title"><span class="num">↪</span>발행에서 발송까지</div>
+      <div class="flow-steps">
+        <div class="flow-step"><div class="lbl">1 · SERVICE</div><div class="body">대상 조회·카운트는 트랜잭션 안에서 동기로 끝내고 <code>publishEvent()</code></div></div>
+        <div class="flow-step"><div class="lbl">2 · AFTER_COMMIT</div><div class="body"><code>@TransactionalEventListener</code> 가 <strong>커밋된 사실</strong>에만 반응</div></div>
+        <div class="flow-step"><div class="lbl">3 · @ASYNC</div><div class="body"><code>petcare-async</code> 풀(5/10/50)에서 실행 — 요청 스레드 비점유</div></div>
+        <div class="flow-step"><div class="lbl">4 · LISTENER</div><div class="body">FCM·SES 발송, 단건 실패는 try-catch 로 격리</div></div>
+      </div>
+    </div>
+
+    <!-- EVENT ↔ LISTENER -->
+    <div class="design-grid">
+      <div class="design-card">
+        <span class="pill">SES · EMAIL</span>
+        <h4>AuthEmailListener</h4>
+        <p><em>3 events</em> · EmailVerificationRequested · PasswordResetCodeRequested · AccountMergeCodeRequested</p>
+      </div>
+      <div class="design-card">
+        <span class="pill">FCM · PUSH</span>
+        <h4>LostPetNotificationListener</h4>
+        <p><em>3 events</em> · NearbyAlertRequested(≤5000 팬아웃) · SightingReported · MessageSent</p>
+      </div>
+      <div class="design-card">
+        <span class="pill">FCM · PUSH</span>
+        <h4>WalkMeetupNotificationListener</h4>
+        <p><em>5 events</em> · Created(≤500 팬아웃) · Canceled · Joined · Updated · MessageSent</p>
+      </div>
+      <div class="design-card">
+        <span class="pill">FCM · PUSH</span>
+        <h4>ServiceRequestNotificationListener</h4>
+        <p><em>1 event</em> · ServiceRequestNotificationRequested (만료·리마인더·노쇼 등)</p>
+      </div>
+      <div class="design-card">
+        <span class="pill">FCM · PUSH</span>
+        <h4>CareScheduleNotificationListener</h4>
+        <p><em>1 event</em> · CareTaskCompleted (가족 멤버 팬아웃)</p>
+      </div>
+    </div>
+
+    <!-- CODE -->
+    <div class="code-card" style="margin-top:4px;">
+      <div class="head">
+        <span class="pill">AFTER_COMMIT · @ASYNC</span>
+        <div class="meta">
+          <h4>커밋된 뒤에만, 비동기로, 실패는 격리</h4>
+          <div class="sub">listener pattern</div>
+        </div>
+      </div>
+      <p class="why">근처 알림은 최대 <strong>5000건 팬아웃</strong>이라 요청/트랜잭션 안에서 발송하면 DB 커넥션을 오래 쥐고 응답이 느려집니다. 대상 조회는 동기로 끝내고, 실제 푸시는 <strong>커밋 이후 비동기</strong>로 분리했습니다. 단건 발송 실패가 본 흐름을 되돌리지 않도록 리스너 내부에서 예외를 격리합니다.</p>
+      <pre class="code"><span class="filepath">lostpet/listener/LostPetNotificationListener.java</span><span class="an">@Async</span>
+<span class="an">@TransactionalEventListener</span>(phase = AFTER_COMMIT)   <span class="cm">// 커밋된 사실에만 반응</span>
+<span class="kw">public void</span> <span class="fn">onNearbyAlert</span>(<span class="ty">LostPetNearbyAlertRequested</span> e) {
+  <span class="kw">for</span> (<span class="ty">Long</span> uid : e.targetUserIds()) {        <span class="cm">// 최대 5000건 팬아웃</span>
+    send(uid, e.title(), e.body(), LOST_PET_DETAIL, e.reportId());
+  }
+}
+
+<span class="kw">private void</span> <span class="fn">send</span>(<span class="ty">Long</span> userId, ...) {
+  <span class="kw">try</span> {
+    notificationPort.sendSystemNotification(userId, ...);
+  } <span class="kw">catch</span> (<span class="ty">Exception</span> ex) {
+    log.warn(<span class="cm">"send failed ..."</span>);              <span class="cm">// 단건 실패 격리 — 본 흐름 영향 0</span>
+  }
+}</pre>
+      <div class="takeaway">핵심 트랜잭션은 빠르게 커밋되고, 알림은 그 뒤에 흐른다. 발송 실패·지연이 비즈니스 응답을 절대 막지 않는다.</div>
+    </div>
+
+    <!-- DECISIONS -->
+    <div class="design-grid" style="margin-top:28px;">
+      <div class="design-card">
+        <span class="pill">WHY AFTER_COMMIT</span>
+        <h4>없던 일에 알림을 쏘지 않기</h4>
+        <p>리스너를 커밋 이후로 묶어 <em>롤백된 트랜잭션</em>이 푸시·메일을 발송하는 일을 원천 차단. "보낸 알림"과 "DB 사실"이 항상 일치합니다.</p>
+      </div>
+      <div class="design-card">
+        <span class="pill">CONTEXT PROPAGATION</span>
+        <h4>비동기 스레드에도 세션 전파</h4>
+        <p><em>ClonedTaskDecorator</em> 가 부모 스레드의 GlobalSession 을 <em>petcare-async</em> 워커로 복제 → 리스너에서도 사용자 컨텍스트가 살아있습니다.</p>
+      </div>
+      <div class="design-card">
+        <span class="pill">TRADE-OFF</span>
+        <h4>in-process at-most-once</h4>
+        <p>아웃박스(at-least-once)의 운영 비용 대신, 유실을 감내할 수 있는 알림 도메인에 맞춰 <em>인프로세스</em>를 선택. 보장이 필요해지면 같은 발행 지점을 아웃박스로 승격할 수 있습니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- DOMAIN CASE STUDY — SUBSCRIPTION -->
 <section id="subscription-domain">
   <div class="container">
@@ -1116,7 +1214,7 @@
     <div class="section-head">
       <div class="section-tag"><span class="dot"></span>BEHIND THE CODE</div>
       <h2 class="section-title">구조가 무너지지 않게 한 코드들, <span class="script">behind the code</span></h2>
-      <p class="section-desc">기능 단위로 보면 평범한 CRUD 도, 그 안에는 한 명이 풀스택을 다룰 때 도움이 됐던 몇 가지 장치가 있었습니다. 화면에서 보이지 않지만 구조를 떠받치는 코드 3개를 꺼내봤어요.</p>
+      <p class="section-desc">기능 단위로 보면 평범한 CRUD 도, 그 안에는 한 명이 풀스택을 다룰 때 도움이 됐던 몇 가지 장치가 있었습니다. 화면에서 보이지 않지만 구조를 떠받치는 코드들을 꺼내봤어요.</p>
     </div>
 
     <div class="code-grid">
@@ -1271,6 +1369,69 @@ ALTER TABLE user_subscriptions
     ADD UNIQUE KEY uk_us_user_active (active_marker)
         COMMENT 'ACTIVE 구독은 사용자당 1건. NULL (EXPIRED/CANCELLED) 은 중복 허용';</pre>
         <div class="takeaway">VIRTUAL 컬럼이라 디스크 비용 0 (인덱스에만 저장). status 변경 시 active_marker 가 DB 레벨에서 자동 갱신되어 동시성 안전. 자바 도메인 코드는 변경 없음 — 의미상 정합. <strong>DBMS 한계를 우회하면서도 *원래 의도한 제약* 을 정확히 표현한 사례</strong>.</div>
+      </div>
+
+      <div class="code-card">
+        <div class="head">
+          <span class="pill">TOKEN ROTATION · GRACE WINDOW</span>
+          <div class="meta">
+            <h4>회전 race 를 30초 유예창으로</h4>
+            <div class="sub">auth0 / okta rotation overlap</div>
+          </div>
+        </div>
+        <p class="why">토큰을 회전(rotate)하면 직전 토큰은 즉시 무효가 됩니다. 그런데 앱이 거의 동시에 같은 refresh 토큰으로 두 번 요청하면, 두 번째가 <strong>"이미 무효 = 재사용 = 탈취"</strong>로 오탐되어 전 디바이스 강제 로그아웃이 터졌습니다(실제 인시던트). Auth0/Okta 의 "Rotation Overlap Period" 를 도입 — 회전 직후 30초 안의 재사용은 race/retry 로 간주해 캐시된 새 토큰을 그대로 돌려주고, 창 밖이면 진짜 탈취로 보고 전체 무효화합니다.</p>
+        <pre class="code"><span class="filepath">auth/service/RefreshTokenService.java</span><span class="kw">if</span> (!found.isActive()) {
+  <span class="cm">// 회전 직후 N초 안의 oldToken 재사용 → race/retry (탈취 아님)</span>
+  <span class="ty">NewTokens</span> cached = rotationCache.getIfPresent(oldHash);
+  <span class="kw">if</span> (cached != <span class="kw">null</span> &amp;&amp; withinGraceWindow(found)) {
+    <span class="kw">return</span> cached;                       <span class="cm">// 직전 회전 결과를 재반환</span>
+  }
+  <span class="cm">// 창 밖의 재사용 → 진짜 탈취 의심</span>
+  repository.revokeAllByUserId(found.getUserId());
+  <span class="kw">throw</span> BusinessException.of(REFRESH_TOKEN_INVALID);
+}</pre>
+        <div class="takeaway">정상 재시도는 통과, 진짜 탈취만 차단. 기존 3중 방어(클라 single-flight 가드 + JWT <em>jti</em> + token_hash UNIQUE)에 <em>시간 차원</em>을 더해 false positive 로그아웃을 없앴습니다.</div>
+      </div>
+
+      <div class="code-card">
+        <div class="head">
+          <span class="pill">FLUTTER · NETWORKING</span>
+          <div class="meta">
+            <h4>동시 401 을 한 번의 refresh 로</h4>
+            <div class="sub">single-flight + dual-Dio</div>
+          </div>
+        </div>
+        <p class="why">화면 진입 시 여러 API 가 동시에 401 을 받으면, 순진하게는 요청 수만큼 refresh 가 날아가 위 백엔드의 회전 race 를 스스로 유발합니다. <strong>Completer 기반 single-flight</strong> 로 동시 401 을 하나의 갱신 Future 에 합류시키고, refresh 요청 자체는 갱신 인터셉터가 없는 <strong>별도 raw Dio</strong> 로 보내 재귀를 끊습니다. 재시도 시 멀티파트 본문은 이미 finalize 되어 그대로 못 보내므로 <em>FormData.clone()</em> 으로 복제합니다.</p>
+        <pre class="code"><span class="filepath">lib/services/dio_client.dart · auth_service.dart</span><span class="cm">// 동시 401 — 첫 호출만 실제 갱신, 나머지는 같은 Future 대기</span>
+<span class="kw">if</span> (_refreshCompleter != <span class="kw">null</span>) <span class="kw">return</span> _refreshCompleter!.future;
+_refreshCompleter = Completer&lt;<span class="ty">bool</span>&gt;();
+
+<span class="cm">// 이미 다른 요청이 갱신했으면(보낸 토큰 != 현재 토큰) 갱신 건너뛰고 재시도만</span>
+<span class="kw">final</span> refreshed = sentAuth != currentAuth || <span class="kw">await</span> AuthService.refreshSession();
+<span class="kw">if</span> (refreshed) {
+  <span class="kw">if</span> (opts.data <span class="kw">is</span> <span class="ty">FormData</span>) opts.data = (opts.data <span class="kw">as</span> <span class="ty">FormData</span>).clone();
+  <span class="kw">return</span> handler.resolve(<span class="kw">await</span> DioClient.raw.fetch(opts)); <span class="cm">// raw=재귀 차단</span>
+}</pre>
+        <div class="takeaway">백엔드 회전·디바이스 격리와 정확히 맞물리는 클라 설계. X-Device-Id 핀닝으로 토큰 수명을 기기 단위로 격리하고, 응답 봉투(validateStatus=true)로 비즈니스 에러와 네트워크 에러를 분리 처리합니다.</div>
+      </div>
+
+      <div class="code-card">
+        <div class="head">
+          <span class="pill">CI/CD · DEPLOY</span>
+          <div class="meta">
+            <h4>배포 파이프라인이 부분 실패를 견디게</h4>
+            <div class="sub">github actions</div>
+          </div>
+        </div>
+        <p class="why">머지 → Docker 빌드(GHA 레이어 캐시·git SHA 태그) → EC2 배포 → 헬스체크로 이어지는 체인. 핵심은 배포 직후 <code>/actuator/health</code> 검증이 <strong>중간 상태를 실패로 오판하지 않게</strong> 한 것 — 부팅 지연(000)·미노출(404)·인증요구(401/403)는 경고로 흘리고 5회×30s 재시도로 200 을 기다립니다. iOS 는 main 푸시 시 TestFlight 자동 업로드(빌드번호 <code>1000+run_number</code> 로 단조 증가).</p>
+        <pre class="code"><span class="filepath">.github/workflows/deploy.yml</span>initial_code=$(curl -sS -o /dev/null -w <span class="cm">"%{http_code}"</span> <span class="st">"$HEALTH_URL"</span> || <span class="kw">echo</span> <span class="st">"000"</span>)
+<span class="kw">case</span> <span class="st">"$initial_code"</span> <span class="kw">in</span>
+  404)     <span class="kw">echo</span> <span class="st">"::warning::health 미노출 — 스킵"</span> ;;
+  401|403) <span class="kw">echo</span> <span class="st">"::warning::인증 필요 — 스킵"</span> ;;
+  000)     <span class="kw">echo</span> <span class="st">"::warning::부팅 중 — 재시도로 확인"</span> ;;
+<span class="kw">esac</span>
+<span class="cm"># 이후 5회 × 30s 재시도, 200 이면 통과</span></pre>
+        <div class="takeaway">성숙한 파이프라인은 <em>실패</em>와 <em>중간 상태</em>를 구분합니다. 막 뜨는 컨테이너의 일시적 비정상에 CI 를 깨뜨리지 않으면서도, 끝내 200 이 안 나오면 실패로 처리합니다.</div>
       </div>
 
     </div>
