@@ -333,6 +333,82 @@
   </div>
 </section>
 
+<!-- COMMON COMPONENTS -->
+<section id="components">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-tag"><span class="dot"></span>COMPONENT LIBRARY</div>
+      <h2 class="section-title">반복을 위젯으로, <span class="script">common components</span></h2>
+      <p class="section-desc">60+ 화면을 한 사람이 일관되게 유지하는 비결은 화면마다 UI 를 새로 짜지 않는 것. 로딩·에러·빈 상태, 하단 CTA, 지도, 바텀시트 같은 반복 요소를 공통 위젯으로 추출해 앱 전역이 같은 토큰·같은 동작을 공유합니다.</p>
+    </div>
+
+    <style>
+      .cc-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+      @media (max-width: 760px) { .cc-grid { grid-template-columns: 1fr; } }
+      .cc-group { background: var(--paper); border: 1.5px solid var(--border); border-radius: 18px; padding: 22px 24px; box-shadow: var(--shadow-soft); }
+      .cc-group > .gh { display:flex; align-items:center; gap:8px; font-size: 13px; font-weight: 800; letter-spacing: 0.04em; color: var(--brand-darker); font-family:'Quicksand',sans-serif; margin-bottom: 12px; }
+      .cc-item { padding: 9px 0; border-top: 1px solid var(--border); }
+      .cc-item:first-of-type { border-top: 0; }
+      .cc-item .nm { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12.5px; font-weight: 700; color: var(--ink); }
+      .cc-item .ds { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; line-height: 1.5; }
+      .cc-note { margin-top: 22px; background: var(--brand-subtle); border:1.5px solid var(--brand-soft); border-radius: 14px; padding: 16px 20px; font-size: 13px; color: var(--ink-soft); line-height:1.7; }
+      .cc-note em { font-style: normal; color: var(--brand-darker); font-weight: 700; }
+    </style>
+
+    <div class="cc-grid">
+      <div class="cc-group">
+        <div class="gh">● 상태 · 피드백</div>
+        <div class="cc-item"><div class="nm">AsyncContent</div><div class="ds">로딩 / 에러 / 콘텐츠 삼항 분기 — 화면마다 에러 UI 를 다시 만들지 않는다</div></div>
+        <div class="cc-item"><div class="nm">EmptyState</div><div class="ds">콘텐츠가 없을 때의 빈 상태(일러스트 + 안내)</div></div>
+        <div class="cc-item"><div class="nm">QuotaExceededModal</div><div class="ds">구독 한도 초과 안내 다이얼로그</div></div>
+        <div class="cc-item"><div class="nm">NoShowBanner</div><div class="ds">노쇼 감지 시 상단 경고 배너</div></div>
+      </div>
+
+      <div class="cc-group">
+        <div class="gh">● 액션 · 입력</div>
+        <div class="cc-item"><div class="nm">PrimaryActionButton · BottomActionBar</div><div class="ds">로딩 상태 내장 CTA + 화면 하단 고정 액션 영역</div></div>
+        <div class="cc-item"><div class="nm">RegionPicker · AddressSearchDialog</div><div class="ds">거주 지역/주소 선택 (지오코딩 연동)</div></div>
+        <div class="cc-item"><div class="nm">PetSelector · MultiPetSelector</div><div class="ds">단일/다중 반려동물 선택(그룹 산책 등)</div></div>
+        <div class="cc-item"><div class="nm">PasswordField · TimePicker</div><div class="ds">표시 토글 비밀번호 입력 · 시간 선택</div></div>
+      </div>
+
+      <div class="cc-group">
+        <div class="gh">● 지도</div>
+        <div class="cc-item"><div class="nm">AppLocationMap</div><div class="ds">단일 핀 표시/선택 공통 지도(tapToPlace · centerPin · display)</div></div>
+        <div class="cc-item"><div class="nm">AppRouteMap · RouteMapCard</div><div class="ds">경로·마커 표시 전용 지도와 카드형 래퍼</div></div>
+        <div class="cc-item"><div class="nm">MapCircleButton · MapMarkerIcon</div><div class="ds">지도 위 원형 컨트롤 · 커스텀 마커 아이콘</div></div>
+      </div>
+
+      <div class="cc-group">
+        <div class="gh">● 바텀시트</div>
+        <div class="cc-item"><div class="nm">SlidingBottomSheet</div><div class="ds">드래그로 올리고 내리는 공통 하단 시트</div></div>
+        <div class="cc-item"><div class="nm">AbuseReportSheet · RejectReasonSheet</div><div class="ds">신고 사유 · 거절 사유 선택 시트(재사용)</div></div>
+        <div class="cc-item"><div class="nm">PetInviteSheet · PetMembersSheet</div><div class="ds">가족 공유 초대 · 멤버 관리 시트</div></div>
+      </div>
+
+      <div class="cc-group">
+        <div class="gh">● 표시 요소</div>
+        <div class="cc-item"><div class="nm">PetAvatar · RatingStars · PhotoCarousel</div><div class="ds">아바타 · 별점 · 사진 캐러셀(핀치 줌)</div></div>
+        <div class="cc-item"><div class="nm">InfoChip · InfoRow · SummaryRow</div><div class="ds">라벨-값 표기 일관화(2칸 그리드)</div></div>
+        <div class="cc-item"><div class="nm">SectionHeader · SectionHero · StepIndicator</div><div class="ds">섹션 머리말 · 히어로 · 단계 표시기</div></div>
+        <div class="cc-item"><div class="nm">CareTaskListView · TimelineFeed</div><div class="ds">돌봄 태스크 목록 · 타임라인 피드(공용)</div></div>
+      </div>
+
+      <div class="cc-group">
+        <div class="gh">● v1 디자인 키트</div>
+        <div class="cc-item"><div class="nm">ScreenScaffold · SectionPanel</div><div class="ds">화면 골격 · 카드형 섹션 패널</div></div>
+        <div class="cc-item"><div class="nm">ListTileCard · MetricTile · HighlightStatCard</div><div class="ds">리스트 타일 · 지표 타일 · 강조 통계 카드</div></div>
+        <div class="cc-item"><div class="nm">SoftBadge · SoftFeatureChip · IconBubble</div><div class="ds">배지 · 기능 칩 · 아이콘 버블</div></div>
+        <div class="cc-item"><div class="nm">ActionCard · RibbonAccentCard</div><div class="ds">액션 카드 · 리본 강조 카드</div></div>
+      </div>
+    </div>
+
+    <div class="cc-note">
+      모든 사용자 노출 문자열은 <em>AppMessages</em> 로 중앙화(한국어 하드코딩 금지), 색은 <em>v1 팔레트 토큰</em>(AppColors)으로 통일. CSS 변수(이 사이트) ↔ Flutter AppColors 가 같은 값을 공유해 시안과 구현 사이의 팔레트 드리프트를 막습니다.
+    </div>
+  </div>
+</section>
+
 <!-- SCREENS GALLERY -->
 <section id="screens">
   <div class="container">
@@ -384,6 +460,12 @@
     { f: 'change-email.png', n: '이메일 변경', c: 'auth' },
     { f: 'change-email-verify.png', n: '이메일 변경 인증', c: 'auth' },
     { f: 'change-email-complete.png', n: '이메일 변경 완료', c: 'auth' },
+    { f: 'change-password.png', n: '비밀번호 변경', c: 'auth' },
+    { f: 'onboarding.png', n: '온보딩', c: 'auth' },
+    { f: 'region-setup.png', n: '거주 지역 설정', c: 'auth' },
+    { f: 'forgot-password-verify.png', n: '비밀번호 찾기 · 인증', c: 'auth' },
+    { f: 'forgot-password-reset.png', n: '비밀번호 찾기 · 재설정', c: 'auth' },
+    { f: 'forgot-password-complete.png', n: '비밀번호 재설정 완료', c: 'auth' },
 
     { f: 'home.png', n: '홈 대시보드', c: 'home' },
     { f: 'daily-care.png', n: '오늘의 돌봄', c: 'home' },
@@ -398,6 +480,10 @@
     { f: 'pet-list.png', n: '반려동물 목록', c: 'pet' },
     { f: 'pet-detail.png', n: '반려동물 상세', c: 'pet' },
     { f: 'pet-map.png', n: '반려동물 지도', c: 'pet' },
+    { f: 'pet-edit.png', n: '펫 등록/편집', c: 'pet' },
+    { f: 'anniversary.png', n: '기념일', c: 'pet' },
+    { f: 'breed-guide.png', n: '견종 가이드', c: 'pet' },
+    { f: 'weight-tracker.png', n: '체중 트래커', c: 'pet' },
 
     { f: 'walk-status.png', n: '산책 상태', c: 'walk' },
     { f: 'walk-request.png', n: '산책 요청', c: 'walk' },
@@ -451,11 +537,14 @@
     { f: 'dashboard.png', n: '대시보드',  c: 'provider-ops' },
     { f: 'requests.png',  n: '요청 관리', c: 'provider-ops' },
     { f: 'earnings.png',  n: '수익',      c: 'provider-ops' },
+    { f: 'request-detail.png', n: '요청 상세', c: 'provider-ops' },
+    { f: 'favorite-helpers.png', n: '즐겨찾기 도우미', c: 'provider-ops' },
 
     { f: 'services.png',       n: '서비스 목록',   c: 'provider-service' },
     { f: 'service-edit.png',   n: '서비스 추가/수정', c: 'provider-service' },
     { f: 'pricing.png',        n: '요금 설정',     c: 'provider-service' },
     { f: 'service-report.png', n: '서비스 보고서',  c: 'provider-service' },
+    { f: 'timeline-entry.png', n: '타임라인 입력', c: 'provider-service' },
 
     { f: 'profile-view.png', n: '프로필',     c: 'provider-profile' },
     { f: 'profile-edit.png', n: '프로필 편집', c: 'provider-profile' },
